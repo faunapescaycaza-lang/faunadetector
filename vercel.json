@@ -12,7 +12,9 @@
     {
       "src": "animal-detector/frontend/package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "build" }
+      "config": { "distDir": "build" },
+      "buildCommand": "npm run build",
+      "installCommand": "npm install"
     }
   ],
   "routes": [
