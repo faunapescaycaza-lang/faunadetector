@@ -1,0 +1,29 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/animal-detector/backend/main.py" },
+    { "source": "/(.*)", "destination": "/animal-detector/frontend/$1" }
+  ],
+  "builds": [
+    {
+      "src": "animal-detector/backend/main.py",
+      "use": "@vercel/python",
+      "config": { "maxLambdaSize": "15mb", "runtime": "python3.9" }
+    },
+    {
+      "src": "animal-detector/frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "build" }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/animal-detector/backend/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/animal-detector/frontend/$1"
+    }
+  ],
+  "outputDirectory": "animal-detector/frontend/build"
+}
