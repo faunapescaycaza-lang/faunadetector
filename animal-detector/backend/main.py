@@ -44,6 +44,14 @@ async def annotate_image_for_download(annotation: Annotation):
     image_bytes_io = io.BytesIO(image_data)
     original_image = Image.open(image_bytes_io).convert("RGB") # Ensure RGB for drawing
 
+    # Log received data for debugging
+    print(f"Received Latitude: {annotation.latitude}")
+    print(f"Received Longitude: {annotation.longitude}")
+    if annotation.boxes:
+        print(f"Received Date from first box: {annotation.boxes[0].date}")
+    else:
+        print("No boxes received, so no date from boxes.")
+    
     draw = ImageDraw.Draw(original_image)
     
     font = ImageFont.load_default()
