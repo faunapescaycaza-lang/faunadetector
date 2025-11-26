@@ -1,0 +1,34 @@
+# Virtual Environments
+.venv/
+venv/
+.env
+
+# IDE / Editor specific
+.idea/
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Databases
+*.db
+*.sqlite3
+
+# Other
+.DS_Store
+annotated_images/
+yolov8n.pt
