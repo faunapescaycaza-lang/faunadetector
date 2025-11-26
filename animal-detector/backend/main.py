@@ -44,13 +44,7 @@ async def annotate_image_for_download(annotation: Annotation):
     image_bytes_io = io.BytesIO(image_data)
     original_image = Image.open(image_bytes_io).convert("RGB") # Ensure RGB for drawing
 
-    # Log received data for debugging
-    print(f"Received Latitude: {annotation.latitude}")
-    print(f"Received Longitude: {annotation.longitude}")
-    if annotation.boxes:
-        print(f"Received Date from first box: {annotation.boxes[0].date}")
-    else:
-        print("No boxes received, so no date from boxes.")
+
     
     draw = ImageDraw.Draw(original_image)
     
@@ -61,50 +55,56 @@ async def annotate_image_for_download(annotation: Annotation):
     text_color = (255, 255, 255) # White
     bg_color = (0, 0, 0, 128) # Semi-transparent black for text background
 
-    # Draw boxes and names
-    for i, box in enumerate(annotation.boxes):
-        # Draw rectangle
-        draw.rectangle([box.x1, box.y1, box.x2, box.y2], outline=box_color, width=2)
+        # Draw boxes and names
+        for i, box in enumerate(annotation.boxes):
+            # Draw rectangle
+            draw.rectangle([box.x1, box.y1, box.x2, box.y2], outline=box_color, width=2)
 
-        # Draw text with a background
-        text = box.name
-        # Calculate text bounding box to draw background
-        text_bbox_coords = draw.textbbox((box.x1, box.y1), text, font=font)
-        text_width = text_bbox_coords[2] - text_bbox_coords[0]
-        text_height = text_bbox_coords[3] - text_bbox_coords[1]
+            # Draw name (top-left, outside the box)
+            name_text = box.name
+            name_text_bbox_coords = draw.textbbox((box.x1, box.y1), name_text, font=font)
+            name_text_width = name_text_bbox_coords[2] - name_text_bbox_coords[0]
+            name_text_height = name_text_bbox_coords[3] - name_text_bbox_coords[1]
 
-        # Adjust position to be above the box
-        text_x = box.x1
-        text_y = box.y1 - text_height - 5 # 5 pixels padding above
-        
-        # If text goes above image, place it inside the box
-        if text_y < 0:
-            text_y = box.y1 + 5 # 5 pixels padding inside
+            name_x = box.x1
+            name_y = box.y1 - name_text_height - 5 # 5 pixels padding above
+            if name_y < 0: # If text goes above image, put it inside the box
+                name_y = box.y1 + 5
+            
+            draw.rectangle([name_x, name_y, name_x + name_text_width, name_y + name_text_height], fill=bg_color)
+            draw.text((name_x, name_y), name_text, fill=text_color, font=font)
 
-        # Draw background rectangle for text
-        draw.rectangle([text_x, text_y, text_x + text_width, text_y + text_height], fill=bg_color)
-        draw.text((text_x, text_y), text, fill=text_color, font=font)
+            # Draw date (top-right, outside the box, aligned with name_y)
+            if box.date:
+                date_text = f"Fecha: {box.date}"
+                date_text_bbox_coords = draw.textbbox((box.x2, box.y1), date_text, font=font)
+                date_text_width = date_text_bbox_coords[2] - date_text_bbox_coords[0]
+                date_text_height = date_text_bbox_coords[3] - date_text_bbox_coords[1]
+
+                date_x = box.x2 - date_text_width # Align right
+                date_y = name_y # Align with name_y
+
+                draw.rectangle([date_x, date_y, date_x + date_text_width, date_y + date_text_height], fill=bg_color)
+                draw.text((date_x, date_y), date_text, fill=text_color, font=font)
 
 
-    # Draw latitude, longitude, and date (using date from the first box for simplicity)
-    info_text_lines = []
-    if annotation.latitude is not None and annotation.longitude is not None:
-        info_text_lines.append(f"Lat: {annotation.latitude:.4f}, Lon: {annotation.longitude:.4f}")
-    if annotation.boxes and annotation.boxes[0].date:
-         info_text_lines.append(f"Date: {annotation.boxes[0].date}")
+            # Draw latitude and longitude (inside the box, top-right)
+            if annotation.latitude is not None and annotation.longitude is not None:
+                coords_text = f"Lat: {annotation.latitude:.4f}, Lon: {annotation.longitude:.4f}"
+                coords_text_bbox_coords = draw.textbbox((box.x2, box.y1), coords_text, font=font)
+                coords_text_width = coords_text_bbox_coords[2] - coords_text_bbox_coords[0]
+                coords_text_height = coords_text_bbox_coords[3] - coords_text_bbox_coords[1]
 
-    if info_text_lines:
-        info_text = "\n".join(info_text_lines)
-        info_x = 10
-        info_y = 10
-        
-        # Draw text with a background
-        info_text_bbox_coords = draw.textbbox((info_x, info_y), info_text, font=font)
-        info_text_width = info_text_bbox_coords[2] - info_text_bbox_coords[0]
-        info_text_height = info_text_bbox_coords[3] - info_text_bbox_coords[1]
-        
-        draw.rectangle([info_x, info_y, info_x + info_text_width, info_y + info_text_height], fill=bg_color)
-        draw.text((info_x, info_y), info_text, fill=text_color, font=font)
+                coords_x = box.x2 - coords_text_width - 5 # 5 pixels padding from right
+                coords_y = box.y1 + 5 # 5 pixels padding from top, inside box
+
+                # Ensure it doesn't overlap with name/date if box is very small and name/date are inside
+                if name_y >= box.y1 and coords_y < name_y + name_text_height: # if name is inside and overlaps
+                    coords_y = name_y + name_text_height + 5
+
+                draw.rectangle([coords_x, coords_y, coords_x + coords_text_width, coords_y + coords_text_height], fill=bg_color)
+                draw.text((coords_x, coords_y), coords_text, fill=text_color, font=font)
+
 
     # Encode the annotated image back to base64
     buffered = io.BytesIO()
